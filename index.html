@@ -12,7 +12,6 @@
   h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
   .sub { font-size: 12px; color: #999; margin-bottom: 24px; line-height: 1.6; }
 
-  /* stats */
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 24px; }
   .stat { background: #fff; border-radius: 10px; padding: 14px 12px; border-left: 4px solid #ddd; }
   .stat.todo  { border-left-color: #c0bdb5; }
@@ -21,7 +20,6 @@
   .stat-n { font-size: 26px; font-weight: 700; line-height: 1; }
   .stat-l { font-size: 11px; color: #888; margin-top: 4px; }
 
-  /* add */
   .add-area { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
   .add-area input  { width: 100%; font-size: 16px; padding: 12px 14px; border: 1.5px solid #e0ddd6; border-radius: 8px; background: #faf9f7; outline: none; }
   .add-area input:focus { border-color: #1D9E75; }
@@ -30,24 +28,21 @@
   .add-area button { flex: 1; font-size: 14px; font-weight: 600; padding: 12px; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
   .add-area button:active { background: #444; }
 
-  /* filters */
   .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
   .f-btn { font-size: 12px; font-weight: 500; padding: 7px 14px; border-radius: 20px; border: 1.5px solid #d8d5ce; background: #fff; color: #666; cursor: pointer; white-space: nowrap; }
   .f-btn.on { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
   .f-btn.new-on { background: #c0392b; color: #fff; border-color: #c0392b; }
 
-  /* section */
   .section { margin-bottom: 28px; }
   .sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1.5px solid #e8e5de; }
   .sec-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
   .sec-title { font-size: 12px; font-weight: 600; color: #555; letter-spacing: .04em; }
   .sec-count { font-size: 11px; background: #eceae4; color: #777; padding: 2px 8px; border-radius: 10px; }
 
-  /* card */
-  .card { background: #fff; border-radius: 12px; padding: 14px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px; border: 1.5px solid transparent; }
+  .card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px; }
   .card.done-card { opacity: .5; }
 
-  .status-btn { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #ccc; background: #fff; cursor: pointer; flex-shrink: 0; margin-top: 0; position: relative; }
+  .status-btn { width: 26px; height: 26px; min-width: 26px; border-radius: 50%; border: 2px solid #ccc; background: #fff; cursor: pointer; flex-shrink: 0; position: relative; }
   .status-btn.todo  { border-color: #c0bdb5; }
   .status-btn.doing { border-color: #1D9E75; background: #e8f8f2; }
   .status-btn.done  { background: #378ADD; border-color: #378ADD; }
@@ -75,7 +70,7 @@
 <body>
 <div class="page">
   <h1>タスク管理</h1>
-  <p class="sub">ステータスボタンをタップで切り替え　未着手→進行中→完了</p>
+  <p class="sub">ステータスボタンをタップで切り替え　未着手 → 進行中 → 完了</p>
 
   <div class="stats" id="stats"></div>
 
@@ -115,8 +110,7 @@ const SEC = {
   todo:  { label: '未着手', color: '#c0bdb5' },
   done:  { label: '完了',   color: '#378ADD' },
 };
-
-let tasks = [
+const DEFAULT_TASKS = [
   { id:1,  text: 'ボスミッション：PowerPoint',        cat: 'curr', status: 'todo',  isNew: false },
   { id:2,  text: 'ボスミッション：メール',              cat: 'curr', status: 'todo',  isNew: false },
   { id:3,  text: 'ボスミッション：情報収集',            cat: 'curr', status: 'todo',  isNew: false },
@@ -128,22 +122,39 @@ let tasks = [
   { id:9,  text: '見学対応記録 スプレッドシート運用',   cat: 'ops',  status: 'doing', isNew: false },
   { id:10, text: 'スタッフ進行ガイド 更新',             cat: 'ops',  status: 'todo',  isNew: false },
 ];
-let nextId = 100;
+
+const STORAGE_KEY = 'brainit_tasks';
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : DEFAULT_TASKS;
+  } catch(e) { return DEFAULT_TASKS; }
+}
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+}
+
+let tasks = load();
+let nextId = tasks.reduce((m, t) => Math.max(m, t.id), 0) + 1;
 let filter = 'all';
 
 function cycleStatus(id) {
   const t = tasks.find(t => t.id === id);
   const order = ['todo','doing','done'];
   t.status = order[(order.indexOf(t.status) + 1) % 3];
-  render();
+  save(); render();
 }
-function deleteTask(id) { tasks = tasks.filter(t => t.id !== id); render(); }
+function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  save(); render();
+}
 function addTask() {
   const txt = document.getElementById('new-text').value.trim();
   if (!txt) return;
   tasks.unshift({ id: nextId++, text: txt, cat: document.getElementById('new-cat').value, status: 'todo', isNew: true });
   document.getElementById('new-text').value = '';
-  render();
+  save(); render();
 }
 function setFilter(f, btn) {
   filter = f;
@@ -192,7 +203,7 @@ function section(label, color, items) {
 function card(t) {
   const c = CAT[t.cat];
   return `<div class="card${t.status==='done'?' done-card':''}">
-    <button class="status-btn ${t.status}" onclick="cycleStatus(${t.id})" title="タップでステータス変更"></button>
+    <button class="status-btn ${t.status}" onclick="cycleStatus(${t.id})"></button>
     <div class="card-body">
       <div class="card-text">${t.text}</div>
       <div class="card-meta">

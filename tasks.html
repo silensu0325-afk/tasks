@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>タスク管理</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; background: #f5f4f0; color: #1a1a1a; font-size: 15px; }
+  .page { max-width: 680px; margin: 0 auto; padding: 24px 16px 80px; }
+
+  h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .sub { font-size: 12px; color: #999; margin-bottom: 24px; line-height: 1.6; }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 24px; }
+  .stat { background: #fff; border-radius: 10px; padding: 14px 12px; border-left: 4px solid #ddd; }
+  .stat.todo  { border-left-color: #c0bdb5; }
+  .stat.doing { border-left-color: #1D9E75; }
+  .stat.done  { border-left-color: #378ADD; }
+  .stat-n { font-size: 26px; font-weight: 700; line-height: 1; }
+  .stat-l { font-size: 11px; color: #888; margin-top: 4px; }
+
+  /* add */
+  .add-area { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .add-area input  { width: 100%; font-size: 16px; padding: 12px 14px; border: 1.5px solid #e0ddd6; border-radius: 8px; background: #faf9f7; outline: none; }
+  .add-area input:focus { border-color: #1D9E75; }
+  .add-row2 { display: flex; gap: 8px; }
+  .add-area select { flex: 1; font-size: 14px; padding: 12px 10px; border: 1.5px solid #e0ddd6; border-radius: 8px; background: #faf9f7; outline: none; }
+  .add-area button { flex: 1; font-size: 14px; font-weight: 600; padding: 12px; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+  .add-area button:active { background: #444; }
+
+  /* filters */
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+  .f-btn { font-size: 12px; font-weight: 500; padding: 7px 14px; border-radius: 20px; border: 1.5px solid #d8d5ce; background: #fff; color: #666; cursor: pointer; white-space: nowrap; }
+  .f-btn.on { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .f-btn.new-on { background: #c0392b; color: #fff; border-color: #c0392b; }
+
+  /* section */
+  .section { margin-bottom: 28px; }
+  .sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1.5px solid #e8e5de; }
+  .sec-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .sec-title { font-size: 12px; font-weight: 600; color: #555; letter-spacing: .04em; }
+  .sec-count { font-size: 11px; background: #eceae4; color: #777; padding: 2px 8px; border-radius: 10px; }
+
+  /* card */
+  .card { background: #fff; border-radius: 12px; padding: 14px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px; border: 1.5px solid transparent; }
+  .card.done-card { opacity: .5; }
+
+  .status-btn { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #ccc; background: #fff; cursor: pointer; flex-shrink: 0; margin-top: 0; position: relative; }
+  .status-btn.todo  { border-color: #c0bdb5; }
+  .status-btn.doing { border-color: #1D9E75; background: #e8f8f2; }
+  .status-btn.done  { background: #378ADD; border-color: #378ADD; }
+  .status-btn.done::after { content: ''; display: block; width: 6px; height: 10px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg) translate(-1px, -2px); position: absolute; left: 7px; top: 4px; }
+
+  .card-body { flex: 1; min-width: 0; }
+  .card-text { font-size: 14px; line-height: 1.6; }
+  .done-card .card-text { text-decoration: line-through; }
+  .card-meta { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+  .cat-tag { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 6px; }
+  .cat-curr { background: #eaf3de; color: #3B6D11; }
+  .cat-pr   { background: #e6f1fb; color: #185FA5; }
+  .cat-ops  { background: #faeeda; color: #854F0B; }
+  .cat-priv { background: #eeedfe; color: #3C3489; }
+
+  .new-tag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: #fde8e6; color: #c0392b; letter-spacing: .04em; }
+
+  .del-btn { font-size: 22px; color: #ccc; background: none; border: none; cursor: pointer; line-height: 1; padding: 0 4px; flex-shrink: 0; }
+  .del-btn:active { color: #e74c3c; }
+
+  .empty { font-size: 13px; color: #aaa; padding: 10px 0; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>タスク管理</h1>
+  <p class="sub">ステータスボタンをタップで切り替え　未着手→進行中→完了</p>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="add-area">
+    <input id="new-text" placeholder="タスクを追加..." onkeydown="if(event.key==='Enter')addTask()">
+    <div class="add-row2">
+      <select id="new-cat">
+        <option value="curr">カリキュラム</option>
+        <option value="pr">広報</option>
+        <option value="ops">運営</option>
+        <option value="priv">個人</option>
+      </select>
+      <button onclick="addTask()">＋ 追加</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <button class="f-btn on" onclick="setFilter('all',this)">すべて</button>
+    <button class="f-btn" onclick="setFilter('todo',this)">未着手</button>
+    <button class="f-btn" onclick="setFilter('doing',this)">進行中</button>
+    <button class="f-btn" onclick="setFilter('done',this)">完了</button>
+    <button class="f-btn" onclick="setFilter('new',this)">🔴 NEW</button>
+  </div>
+
+  <div id="board"></div>
+</div>
+
+<script>
+const CAT = {
+  curr: { label: 'カリキュラム', cls: 'cat-curr' },
+  pr:   { label: '広報',         cls: 'cat-pr'   },
+  ops:  { label: '運営',         cls: 'cat-ops'  },
+  priv: { label: '個人',         cls: 'cat-priv' },
+};
+const SEC = {
+  doing: { label: '進行中', color: '#1D9E75' },
+  todo:  { label: '未着手', color: '#c0bdb5' },
+  done:  { label: '完了',   color: '#378ADD' },
+};
+
+let tasks = [
+  { id:1,  text: 'ボスミッション：PowerPoint',        cat: 'curr', status: 'todo',  isNew: false },
+  { id:2,  text: 'ボスミッション：メール',              cat: 'curr', status: 'todo',  isNew: false },
+  { id:3,  text: 'ボスミッション：情報収集',            cat: 'curr', status: 'todo',  isNew: false },
+  { id:4,  text: 'ボスミッション：SNS',                 cat: 'curr', status: 'todo',  isNew: false },
+  { id:5,  text: 'ボスミッション：データ分析',          cat: 'curr', status: 'todo',  isNew: false },
+  { id:6,  text: '6時間体験プログラム 最終調整',        cat: 'curr', status: 'doing', isNew: false },
+  { id:7,  text: 'A型就労継続支援との比較チラシ',       cat: 'pr',   status: 'todo',  isNew: false },
+  { id:8,  text: '駐車場案内素材',                      cat: 'pr',   status: 'todo',  isNew: false },
+  { id:9,  text: '見学対応記録 スプレッドシート運用',   cat: 'ops',  status: 'doing', isNew: false },
+  { id:10, text: 'スタッフ進行ガイド 更新',             cat: 'ops',  status: 'todo',  isNew: false },
+];
+let nextId = 100;
+let filter = 'all';
+
+function cycleStatus(id) {
+  const t = tasks.find(t => t.id === id);
+  const order = ['todo','doing','done'];
+  t.status = order[(order.indexOf(t.status) + 1) % 3];
+  render();
+}
+function deleteTask(id) { tasks = tasks.filter(t => t.id !== id); render(); }
+function addTask() {
+  const txt = document.getElementById('new-text').value.trim();
+  if (!txt) return;
+  tasks.unshift({ id: nextId++, text: txt, cat: document.getElementById('new-cat').value, status: 'todo', isNew: true });
+  document.getElementById('new-text').value = '';
+  render();
+}
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('on','new-on'));
+  btn.classList.add(f === 'new' ? 'new-on' : 'on');
+  render();
+}
+
+function render() {
+  const doing = tasks.filter(t => t.status === 'doing').length;
+  const todo  = tasks.filter(t => t.status === 'todo').length;
+  const done  = tasks.filter(t => t.status === 'done').length;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat doing"><div class="stat-n">${doing}</div><div class="stat-l">進行中</div></div>
+    <div class="stat todo"><div class="stat-n">${todo}</div><div class="stat-l">未着手</div></div>
+    <div class="stat done"><div class="stat-n">${done}</div><div class="stat-l">完了</div></div>`;
+
+  let visible = filter === 'new'  ? tasks.filter(t => t.isNew) :
+                filter === 'all'  ? tasks :
+                tasks.filter(t => t.status === filter);
+
+  let html = '';
+  if (filter === 'new') {
+    html = section('NEW追加タスク', '#c0392b', visible);
+  } else if (filter !== 'all') {
+    html = section(SEC[filter].label, SEC[filter].color, visible);
+  } else {
+    ['doing','todo','done'].forEach(g => {
+      html += section(SEC[g].label, SEC[g].color, visible.filter(t => t.status === g));
+    });
+  }
+  document.getElementById('board').innerHTML = html;
+}
+
+function section(label, color, items) {
+  const dot = `<div class="sec-dot" style="background:${color}"></div>`;
+  const cards = items.length
+    ? items.map(t => card(t)).join('')
+    : '<div class="empty">なし</div>';
+  return `<div class="section">
+    <div class="sec-head">${dot}<span class="sec-title">${label}</span><span class="sec-count">${items.length}</span></div>
+    ${cards}
+  </div>`;
+}
+
+function card(t) {
+  const c = CAT[t.cat];
+  return `<div class="card${t.status==='done'?' done-card':''}">
+    <button class="status-btn ${t.status}" onclick="cycleStatus(${t.id})" title="タップでステータス変更"></button>
+    <div class="card-body">
+      <div class="card-text">${t.text}</div>
+      <div class="card-meta">
+        <span class="cat-tag ${c.cls}">${c.label}</span>
+        ${t.isNew ? '<span class="new-tag">NEW</span>' : ''}
+      </div>
+    </div>
+    <button class="del-btn" onclick="deleteTask(${t.id})">×</button>
+  </div>`;
+}
+
+render();
+</script>
+</body>
+</html>
